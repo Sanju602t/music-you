@@ -1,5 +1,8 @@
 package com.github.kugou
 
+import com.github.kugou.models.DownloadLyricsResponse
+import com.github.kugou.models.SearchLyricsResponse
+import com.github.kugou.models.SearchSongResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
@@ -12,12 +15,9 @@ import io.ktor.client.request.parameter
 import io.ktor.http.ContentType
 import io.ktor.http.encodeURLParameter
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.util.decodeBase64String
-import com.github.kugou.models.DownloadLyricsResponse
-import com.github.kugou.models.SearchLyricsResponse
-import com.github.kugou.models.SearchSongResponse
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlin.io.encoding.Base64
 
 object KuGou {
     @OptIn(ExperimentalSerializationApi::class)
@@ -62,7 +62,10 @@ object KuGou {
                     for (info in infoByKeyword) {
                         if (info.duration >= duration - tolerance && info.duration <= duration + tolerance) {
                             searchLyricsByHash(info.hash).firstOrNull()?.let { candidate ->
-                                return@runCatching downloadLyrics(candidate.id, candidate.accessKey).normalize()
+                                return@runCatching downloadLyrics(
+                                    id = candidate.id,
+                                    accessKey = candidate.accessKey
+                                ).normalize()
                             }
                         }
                     }
@@ -80,14 +83,14 @@ object KuGou {
     }
 
     private suspend fun downloadLyrics(id: Long, accessKey: String): Lyrics {
-        return client.get("/download") {
+        return Base64.decode(client.get("/download") {
             parameter("ver", 1)
             parameter("man", "yes")
             parameter("client", "pc")
             parameter("fmt", "lrc")
             parameter("id", id)
             parameter("accesskey", accessKey)
-        }.body<DownloadLyricsResponse>().content.decodeBase64String().let(::Lyrics)
+        }.body<DownloadLyricsResponse>().content).decodeToString().let(::Lyrics)
     }
 
     private suspend fun searchLyricsByHash(hash: String): List<SearchLyricsResponse.Candidate> {
