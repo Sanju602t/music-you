@@ -3,13 +3,13 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.kotlin)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.ksp)
 }
 
 kotlin {
     compilerOptions {
+        languageVersion = org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_1
         jvmTarget = JvmTarget.fromTarget("17")
         freeCompilerArgs.addAll("-Xcontext-receivers")
     }
@@ -22,7 +22,6 @@ android {
     defaultConfig {
         applicationId = "com.github.musicyou"
         minSdk = 23
-        targetSdk = 36
         versionCode = 13
         versionName = "1.0.0"
     }
@@ -50,7 +49,7 @@ android {
     }
 
     sourceSets.all {
-        kotlin.srcDir("src/$name/kotlin")
+        kotlin.directories.add("src/$name/kotlin")
     }
 
     buildFeatures {
