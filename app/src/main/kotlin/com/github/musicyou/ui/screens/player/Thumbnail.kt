@@ -45,9 +45,8 @@ import com.github.innertube.Innertube
 import com.github.innertube.requests.visitorData
 import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerServiceBinder
-import com.github.musicyou.service.LoginRequiredException
-import com.github.musicyou.service.PlayableFormatNotFoundException
 import com.github.musicyou.service.UnplayableException
+import com.github.musicyou.service.VideoIdMismatchException
 import com.github.musicyou.ui.styling.Dimensions
 import com.github.musicyou.ui.styling.px
 import com.github.musicyou.utils.DisposableListener
@@ -60,9 +59,8 @@ import com.github.musicyou.utils.thumbnail
 import kotlinx.coroutines.runBlocking
 import me.saket.swipe.SwipeAction
 import me.saket.swipe.SwipeableActionsBox
-import java.net.UnknownHostException
-import java.nio.channels.UnresolvedAddressException
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalFoundationApi::class)
 @ExperimentalAnimationApi
 @Composable
@@ -89,18 +87,18 @@ fun Thumbnail(
 
     val retry = {
         when (error?.cause?.cause) {
-            is UnresolvedAddressException,
-            is UnknownHostException,
-            is PlayableFormatNotFoundException,
-            is UnplayableException,
-            is LoginRequiredException -> player.prepare()
-
-            else -> {
+            is VideoIdMismatchException -> {
                 runBlocking {
                     Innertube.visitorData = Innertube.visitorData().getOrNull()
                 }
                 player.prepare()
             }
+
+            is UnplayableException -> {
+                player.forceSeekToNext()
+            }
+
+            else -> player.prepare()
         }
     }
 
