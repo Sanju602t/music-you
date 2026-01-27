@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">Music You</string>
     <string name="home">Главная</string>
     <string name="songs">Музыка</string>
     <string name="playlists">Плейлисты</string>
