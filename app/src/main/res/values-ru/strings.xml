@@ -51,7 +51,6 @@
     <string name="restore_information">После восстановления базы данных приложение автоматически перезагрузится и существующие данные будут перезаписаны.</string>
     <string name="backup_description">Экспортировать данные во внешнее хранилище</string>
     <string name="restore_description">Импортировать данные из внешнего хранилища</string>
-    <string name="android_auto" translatable="false">Android Auto</string>
     <string name="service_lifetime">Время жизни службы</string>
     <string name="pause_search_history">Приостановить историю поиска</string>
     <string name="pause_search_history_description">Новые запросы не будут сохраняться, а старые будут скрыты</string>
@@ -72,7 +71,6 @@
     <string name="hide">Удалить</string>
     <string name="remove_from_queue">Удалить из очереди</string>
     <string name="remove_from_playlist">Удалить из плейлиста</string>
-    <string name="github" translatable="false">GitHub</string>
     <string name="shuffle">Перемешать</string>
     <string name="quick_picks">Рекомендации</string>
     <string name="view_all">Показать все</string>
@@ -198,8 +196,6 @@
     <string name="retry">Перезагрузить</string>
     <string name="information">Информация</string>
     <string name="close">Закрыть</string>
-    <string name="id" translatable="false">Id</string>
-    <string name="itag" translatable="false">Itag</string>
     <string name="bitrate">Битрейт</string>
     <string name="size">Размер</string>
     <string name="cached">Кэшировано</string>
