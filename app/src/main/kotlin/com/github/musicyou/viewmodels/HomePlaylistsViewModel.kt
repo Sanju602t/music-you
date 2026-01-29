@@ -4,7 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.github.musicyou.Database
+import com.github.musicyou.database
 import com.github.musicyou.enums.PlaylistSortBy
 import com.github.musicyou.enums.SortOrder
 import com.github.musicyou.models.PlaylistPreview
@@ -16,7 +16,7 @@ class HomePlaylistsViewModel : ViewModel() {
         sortBy: PlaylistSortBy,
         sortOrder: SortOrder
     ) {
-        Database
+        database
             .playlistPreviews(sortBy, sortOrder)
             .collect { items = it }
     }

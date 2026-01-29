@@ -51,16 +51,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.C
 import androidx.media3.common.MediaMetadata
-import com.valentinilk.shimmer.shimmer
 import com.github.innertube.Innertube
 import com.github.innertube.requests.lyrics
 import com.github.kugou.KuGou
-import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerServiceBinder
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.models.LocalMenuState
 import com.github.musicyou.models.Lyrics
-import com.github.musicyou.query
 import com.github.musicyou.ui.components.Menu
 import com.github.musicyou.ui.components.MenuEntry
 import com.github.musicyou.ui.components.TextFieldDialog
@@ -73,6 +71,7 @@ import com.github.musicyou.utils.isShowingSynchronizedLyricsKey
 import com.github.musicyou.utils.rememberPreference
 import com.github.musicyou.utils.toast
 import com.github.musicyou.utils.verticalFadingEdge
+import com.valentinilk.shimmer.shimmer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -117,7 +116,7 @@ fun Lyrics(
 
         LaunchedEffect(mediaId, isShowingSynchronizedLyrics) {
             withContext(Dispatchers.IO) {
-                Database.lyrics(mediaId).collect {
+                database.lyrics(mediaId).collect {
                     if (isShowingSynchronizedLyrics && it?.synced == null) {
                         val mediaMetadata = mediaMetadataProvider()
                         var duration = withContext(Dispatchers.Main) {
@@ -136,7 +135,7 @@ fun Lyrics(
                             title = mediaMetadata.title?.toString() ?: "",
                             duration = duration / 1000
                         )?.onSuccess { syncedLyrics ->
-                            Database.upsert(
+                            database.upsert(
                                 Lyrics(
                                     songId = mediaId,
                                     fixed = it?.fixed,
@@ -148,7 +147,7 @@ fun Lyrics(
                         }
                     } else if (!isShowingSynchronizedLyrics && it?.fixed == null) {
                         Innertube.lyrics(videoId = mediaId)?.onSuccess { fixedLyrics ->
-                            Database.upsert(
+                            database.upsert(
                                 Lyrics(
                                     songId = mediaId,
                                     fixed = fixedLyrics ?: "",
@@ -175,9 +174,9 @@ fun Lyrics(
                 isTextInputValid = { true },
                 onDismiss = { isEditing = false },
                 onDone = {
-                    query {
+                    database.query {
                         ensureSongInserted()
-                        Database.upsert(
+                        database.upsert(
                             Lyrics(
                                 songId = mediaId,
                                 fixed = if (isShowingSynchronizedLyrics) lyrics?.fixed else it,
@@ -395,8 +394,8 @@ fun Lyrics(
                                 enabled = lyrics != null,
                                 onClick = {
                                     menuState.hide()
-                                    query {
-                                        Database.upsert(
+                                    database.query {
+                                        database.upsert(
                                             Lyrics(
                                                 songId = mediaId,
                                                 fixed = if (isShowingSynchronizedLyrics) lyrics?.fixed else null,

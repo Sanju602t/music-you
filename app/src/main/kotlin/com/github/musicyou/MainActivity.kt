@@ -45,6 +45,7 @@ import androidx.navigation.compose.rememberNavController
 import com.github.innertube.Innertube
 import com.github.innertube.requests.playlistPage
 import com.github.innertube.requests.song
+import com.github.musicyou.database.MusicDatabase
 import com.github.musicyou.models.LocalMenuState
 import com.github.musicyou.service.PlayerService
 import com.github.musicyou.ui.components.BottomNavigation
@@ -235,6 +236,8 @@ class MainActivity : ComponentActivity() {
         super.onStop()
     }
 }
+
+lateinit var database: MusicDatabase
 
 val LocalPlayerServiceBinder = staticCompositionLocalOf<PlayerService.Binder?> { null }
 val LocalPlayerPadding = compositionLocalOf { 0.dp }

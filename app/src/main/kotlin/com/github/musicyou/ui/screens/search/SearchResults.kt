@@ -34,10 +34,10 @@ import androidx.compose.ui.unit.dp
 import com.github.innertube.Innertube
 import com.github.innertube.requests.searchPage
 import com.github.innertube.utils.from
-import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.LocalPlayerServiceBinder
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.enums.SongSortBy
 import com.github.musicyou.enums.SortOrder
 import com.github.musicyou.models.ActionInfo
@@ -45,9 +45,9 @@ import com.github.musicyou.models.LocalMenuState
 import com.github.musicyou.models.Section
 import com.github.musicyou.models.Song
 import com.github.musicyou.ui.components.ChipScaffold
-import com.github.musicyou.ui.components.SwipeToActionBox
 import com.github.musicyou.ui.components.InHistoryMediaItemMenu
 import com.github.musicyou.ui.components.NonQueuedMediaItemMenu
+import com.github.musicyou.ui.components.SwipeToActionBox
 import com.github.musicyou.ui.items.AlbumItem
 import com.github.musicyou.ui.items.ArtistItem
 import com.github.musicyou.ui.items.ItemPlaceholder
@@ -308,7 +308,7 @@ fun SearchResults(
                 var items: List<Song> by remember { mutableStateOf(emptyList()) }
 
                 LaunchedEffect(Unit) {
-                    Database.songs(SongSortBy.Title, SortOrder.Ascending).collect {
+                    database.songs(SongSortBy.Title, SortOrder.Ascending).collect {
                         items = it.filter { song ->
                             song.title.contains(
                                 other = query,

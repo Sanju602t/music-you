@@ -16,8 +16,8 @@ import androidx.core.os.bundleOf
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.cache.Cache
-import com.github.musicyou.Database
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.models.Album
 import com.github.musicyou.models.PlaylistPreview
 import com.github.musicyou.models.Song
@@ -84,7 +84,7 @@ class PlayerMediaBrowserService : MediaBrowserService(), ServiceConnection {
                         albumsBrowserMediaItem
                     )
 
-                    MediaId.SONGS -> Database
+                    MediaId.SONGS -> database
                         .songsByPlayTimeDesc()
                         .first()
                         .take(30)
@@ -95,7 +95,7 @@ class PlayerMediaBrowserService : MediaBrowserService(), ServiceConnection {
                             if (isNotEmpty()) add(0, shuffleBrowserMediaItem)
                         }
 
-                    MediaId.PLAYLISTS -> Database
+                    MediaId.PLAYLISTS -> database
                         .playlistPreviewsByDateAddedDesc()
                         .first()
                         .map { it.asBrowserMediaItem }
@@ -105,7 +105,7 @@ class PlayerMediaBrowserService : MediaBrowserService(), ServiceConnection {
                             add(1, offlineBrowserMediaItem)
                         }
 
-                    MediaId.ALBUMS -> Database
+                    MediaId.ALBUMS -> database
                         .albumsByRowIdDesc()
                         .first()
                         .map { it.asBrowserMediaItem }
@@ -244,12 +244,12 @@ class PlayerMediaBrowserService : MediaBrowserService(), ServiceConnection {
                             lastSongs
                         }
 
-                    MediaId.FAVORITES -> Database
+                    MediaId.FAVORITES -> database
                         .favorites()
                         .first()
                         .shuffled()
 
-                    MediaId.OFFLINE -> Database
+                    MediaId.OFFLINE -> database
                         .songsWithContentLength()
                         .first()
                         .filter { song ->
@@ -263,14 +263,14 @@ class PlayerMediaBrowserService : MediaBrowserService(), ServiceConnection {
                     MediaId.PLAYLISTS -> data
                         .getOrNull(1)
                         ?.toLongOrNull()
-                        ?.let(Database::playlistWithSongs)
+                        ?.let(database::playlistWithSongs)
                         ?.first()
                         ?.songs
                         ?.shuffled()
 
                     MediaId.ALBUMS -> data
                         .getOrNull(1)
-                        ?.let(Database::albumSongs)
+                        ?.let(database::albumSongs)
                         ?.first()
 
                     else -> emptyList()

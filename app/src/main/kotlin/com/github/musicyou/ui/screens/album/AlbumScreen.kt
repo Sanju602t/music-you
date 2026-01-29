@@ -23,12 +23,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.github.innertube.Innertube
 import com.github.innertube.requests.albumPage
-import com.github.musicyou.Database
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.models.Album
 import com.github.musicyou.models.Section
 import com.github.musicyou.models.SongAlbumMap
-import com.github.musicyou.query
 import com.github.musicyou.ui.components.TabScaffold
 import com.github.musicyou.ui.components.TooltipIconButton
 import com.github.musicyou.ui.components.adaptiveThumbnailContent
@@ -61,7 +60,7 @@ fun AlbumScreen(
     val pagerState = rememberPagerState(pageCount = { tabs.size })
 
     LaunchedEffect(Unit) {
-        Database
+        database
             .album(browseId)
             .combine(snapshotFlow { pagerState.currentPage }) { album, tabIndex -> album to tabIndex }
             .collect { (currentAlbum, tabIndex) ->
@@ -74,9 +73,9 @@ fun AlbumScreen(
                             ?.onSuccess { currentAlbumPage ->
                                 albumPage = currentAlbumPage
 
-                                Database.clearAlbum(browseId)
+                                database.clearAlbum(browseId)
 
-                                Database.upsert(
+                                database.upsert(
                                     Album(
                                         id = browseId,
                                         title = currentAlbumPage.title,
@@ -92,7 +91,7 @@ fun AlbumScreen(
                                         .songsPage
                                         ?.items
                                         ?.map(Innertube.SongItem::asMediaItem)
-                                        ?.onEach(Database::insert)
+                                        ?.onEach(database::insert)
                                         ?.mapIndexed { position, mediaItem ->
                                             SongAlbumMap(
                                                 songId = mediaItem.mediaId,
@@ -124,10 +123,10 @@ fun AlbumScreen(
                     val bookmarkedAt =
                         if (album?.bookmarkedAt == null) System.currentTimeMillis() else null
 
-                    query {
+                    database.query {
                         album
                             ?.copy(bookmarkedAt = bookmarkedAt)
-                            ?.let(Database::update)
+                            ?.let(database::update)
                     }
                 },
                 icon = if (album?.bookmarkedAt == null) Icons.Outlined.BookmarkAdd else Icons.Filled.Bookmark,

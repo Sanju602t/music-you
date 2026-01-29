@@ -34,20 +34,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.LocalPlayerServiceBinder
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.models.ActionInfo
 import com.github.musicyou.models.LocalMenuState
 import com.github.musicyou.models.Song
 import com.github.musicyou.models.SongPlaylistMap
-import com.github.musicyou.query
-import com.github.musicyou.transaction
 import com.github.musicyou.ui.components.CoverScaffold
+import com.github.musicyou.ui.components.InPlaylistMediaItemMenu
 import com.github.musicyou.ui.components.PlaylistThumbnail
 import com.github.musicyou.ui.components.SwipeToActionBox
-import com.github.musicyou.ui.components.InPlaylistMediaItemMenu
 import com.github.musicyou.ui.items.LocalSongItem
 import com.github.musicyou.utils.asMediaItem
 import com.github.musicyou.utils.enqueue
@@ -73,7 +71,7 @@ fun LocalPlaylistSongs(
     var playlistSongs: List<Song> by remember { mutableStateOf(emptyList()) }
 
     LaunchedEffect(Unit) {
-        Database.playlistSongs(playlistId).filterNotNull().collect { playlistSongs = it }
+        database.playlistSongs(playlistId).filterNotNull().collect { playlistSongs = it }
     }
 
     val lazyListState = rememberLazyListState()
@@ -82,8 +80,8 @@ fun LocalPlaylistSongs(
             add(to.index - 2, removeAt(from.index - 2))
         }
 
-        query {
-            Database.move(
+        database.query {
+            database.move(
                 playlistId = playlistId,
                 fromPosition = from.index - 2,
                 toPosition = to.index - 2
@@ -164,14 +162,14 @@ fun LocalPlaylistSongs(
                         ),
                         destructiveAction = ActionInfo(
                             onClick = {
-                                transaction {
-                                    Database.move(
+                                database.transaction {
+                                    database.move(
                                         playlistId = playlistId,
                                         fromPosition = index,
                                         toPosition = Int.MAX_VALUE
                                     )
 
-                                    Database.delete(
+                                    database.delete(
                                         SongPlaylistMap(
                                             songId = song.id,
                                             playlistId = playlistId,
@@ -193,8 +191,8 @@ fun LocalPlaylistSongs(
                                     if (result == SnackbarResult.ActionPerformed) {
                                         val songCount = playlistSongs.size
 
-                                        transaction {
-                                            Database.insert(
+                                        database.transaction {
+                                            database.insert(
                                                 SongPlaylistMap(
                                                     songId = song.id,
                                                     playlistId = playlistId,
@@ -202,7 +200,7 @@ fun LocalPlaylistSongs(
                                                 )
                                             )
 
-                                            Database.move(
+                                            database.move(
                                                 playlistId = playlistId,
                                                 fromPosition = songCount,
                                                 toPosition = index

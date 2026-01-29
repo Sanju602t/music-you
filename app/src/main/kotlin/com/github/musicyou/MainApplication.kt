@@ -9,6 +9,7 @@ import coil3.disk.directory
 import coil3.request.crossfade
 import com.github.innertube.Innertube
 import com.github.innertube.requests.visitorData
+import com.github.musicyou.database.DatabaseInitializer
 import com.github.musicyou.enums.CoilDiskCacheMaxSize
 import com.github.musicyou.utils.coilDiskCacheMaxSizeKey
 import com.github.musicyou.utils.getEnum
@@ -21,7 +22,7 @@ class MainApplication : Application(), SingletonImageLoader.Factory {
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCreate() {
         super.onCreate()
-        DatabaseInitializer()
+        database = DatabaseInitializer.newInstance(context = applicationContext)
 
         GlobalScope.launch {
             if (Innertube.visitorData.isNullOrBlank()) Innertube.visitorData =

@@ -31,14 +31,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.github.innertube.Innertube
 import com.github.innertube.requests.playlistPage
-import com.github.musicyou.Database
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.models.Playlist
 import com.github.musicyou.models.SongPlaylistMap
-import com.github.musicyou.query
-import com.github.musicyou.transaction
-import com.github.musicyou.ui.components.TooltipIconButton
 import com.github.musicyou.ui.components.TextFieldDialog
+import com.github.musicyou.ui.components.TooltipIconButton
 import com.github.musicyou.utils.asMediaItem
 import com.github.musicyou.utils.completed
 import kotlinx.coroutines.Dispatchers
@@ -144,9 +142,9 @@ fun PlaylistScreen(
                     initialTextInput = playlistPage?.title ?: "",
                     onDismiss = { isImportingPlaylist = false },
                     onDone = { text ->
-                        query {
-                            transaction {
-                                val playlistId = Database.insert(
+                        database.query {
+                            database.transaction {
+                                val playlistId = database.insert(
                                     Playlist(
                                         name = text,
                                         browseId = browseId
@@ -155,14 +153,14 @@ fun PlaylistScreen(
 
                                 playlistPage?.songsPage?.items
                                     ?.map(Innertube.SongItem::asMediaItem)
-                                    ?.onEach(Database::insert)
+                                    ?.onEach(database::insert)
                                     ?.mapIndexed { index, mediaItem ->
                                         SongPlaylistMap(
                                             songId = mediaItem.mediaId,
                                             playlistId = playlistId,
                                             position = index
                                         )
-                                    }?.let(Database::insertSongPlaylistMaps)
+                                    }?.let(database::insertSongPlaylistMaps)
                             }
                         }
                     }

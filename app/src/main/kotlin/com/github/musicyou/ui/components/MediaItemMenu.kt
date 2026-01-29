@@ -51,17 +51,15 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.MediaItem
 import com.github.innertube.models.NavigationEndpoint
-import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerServiceBinder
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.enums.PlaylistSortBy
 import com.github.musicyou.enums.SortOrder
 import com.github.musicyou.models.Info
 import com.github.musicyou.models.Playlist
 import com.github.musicyou.models.Song
 import com.github.musicyou.models.SongPlaylistMap
-import com.github.musicyou.query
-import com.github.musicyou.transaction
 import com.github.musicyou.ui.items.MediaSongItem
 import com.github.musicyou.utils.addNext
 import com.github.musicyou.utils.asMediaItem
@@ -93,10 +91,10 @@ fun InHistoryMediaItemMenu(
             onDismiss = { isHiding = false },
             onConfirm = {
                 onDismiss()
-                query {
+                database.query {
                     // Not sure we can do this here
                     binder?.cache?.removeResource(song.id)
-                    Database.incrementTotalPlayTimeMs(song.id, -song.totalPlayTimeMs)
+                    database.incrementTotalPlayTimeMs(song.id, -song.totalPlayTimeMs)
                 }
             }
         )
@@ -127,9 +125,9 @@ fun InPlaylistMediaItemMenu(
         mediaItem = song.asMediaItem,
         onDismiss = onDismiss,
         onRemoveFromPlaylist = {
-            transaction {
-                Database.move(playlistId, positionInPlaylist, Int.MAX_VALUE)
-                Database.delete(SongPlaylistMap(song.id, playlistId, Int.MAX_VALUE))
+            database.transaction {
+                database.move(playlistId, positionInPlaylist, Int.MAX_VALUE)
+                database.delete(SongPlaylistMap(song.id, playlistId, Int.MAX_VALUE))
             }
         },
         modifier = modifier,
@@ -229,12 +227,12 @@ fun BaseMediaItemMenu(
         onRemoveFromQueue = onRemoveFromQueue,
         onRemoveFromPlaylist = onRemoveFromPlaylist,
         onAddToPlaylist = { playlist, position ->
-            transaction {
-                Database.insert(mediaItem)
-                Database.insert(
+            database.transaction {
+                database.insert(mediaItem)
+                database.insert(
                     SongPlaylistMap(
                         songId = mediaItem.mediaId,
-                        playlistId = Database.insert(playlist).takeIf { it != -1L } ?: playlist.id,
+                        playlistId = database.insert(playlist).takeIf { it != -1L } ?: playlist.id,
                         position = position
                     )
                 )
@@ -309,10 +307,10 @@ fun MediaItemMenu(
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            if (albumInfo == null) albumInfo = Database.songAlbumInfo(mediaItem.mediaId)
-            if (artistsInfo == null) artistsInfo = Database.songArtistInfo(mediaItem.mediaId)
+            if (albumInfo == null) albumInfo = database.songAlbumInfo(mediaItem.mediaId)
+            if (artistsInfo == null) artistsInfo = database.songArtistInfo(mediaItem.mediaId)
 
-            Database.likedAt(mediaItem.mediaId).collect { likedAt = it }
+            database.likedAt(mediaItem.mediaId).collect { likedAt = it }
         }
     }
 
@@ -333,7 +331,7 @@ fun MediaItemMenu(
             val sortOrder by rememberPreference(playlistSortOrderKey, SortOrder.Descending)
 
             val playlistPreviews by remember {
-                Database.playlistPreviews(sortBy, sortOrder)
+                database.playlistPreviews(sortBy, sortOrder)
             }.collectAsState(initial = emptyList(), context = Dispatchers.IO)
 
             var isCreatingNewPlaylist by rememberSaveable {
@@ -417,13 +415,13 @@ fun MediaItemMenu(
                         Row {
                             IconButton(
                                 onClick = {
-                                    query {
-                                        if (Database.like(
+                                    database.query {
+                                        if (database.like(
                                                 mediaItem.mediaId,
                                                 if (likedAt == null) System.currentTimeMillis() else null
                                             ) == 0
                                         ) {
-                                            Database.insert(mediaItem, Song::toggleLike)
+                                            database.insert(mediaItem, Song::toggleLike)
                                         }
                                     }
                                 }

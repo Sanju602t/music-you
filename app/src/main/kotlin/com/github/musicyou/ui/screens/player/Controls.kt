@@ -44,10 +44,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.C
 import androidx.media3.common.Player
-import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerServiceBinder
+import com.github.musicyou.database
 import com.github.musicyou.models.Song
-import com.github.musicyou.query
 import com.github.musicyou.ui.components.SeekBar
 import com.github.musicyou.ui.styling.Dimensions
 import com.github.musicyou.utils.forceSeekToNext
@@ -82,7 +81,7 @@ fun Controls(
     )
 
     LaunchedEffect(mediaId) {
-        Database.likedAt(mediaId).distinctUntilChanged().collect { likedAt = it }
+        database.likedAt(mediaId).distinctUntilChanged().collect { likedAt = it }
     }
 
     Column(
@@ -180,8 +179,8 @@ fun Controls(
             IconButton(
                 onClick = {
                     val currentMediaItem = binder.player.currentMediaItem
-                    query {
-                        if (Database.like(
+                    database.query {
+                        if (database.like(
                                 mediaId,
                                 if (likedAt == null) System.currentTimeMillis() else null
                             ) == 0
@@ -189,7 +188,7 @@ fun Controls(
                             currentMediaItem
                                 ?.takeIf { it.mediaId == mediaId }
                                 ?.let {
-                                    Database.insert(currentMediaItem, Song::toggleLike)
+                                    database.insert(currentMediaItem, Song::toggleLike)
                                 }
                         }
                     }

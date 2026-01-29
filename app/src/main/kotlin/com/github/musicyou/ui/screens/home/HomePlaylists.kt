@@ -23,14 +23,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.enums.BuiltInPlaylist
 import com.github.musicyou.enums.PlaylistSortBy
 import com.github.musicyou.enums.SortOrder
 import com.github.musicyou.models.Playlist
-import com.github.musicyou.query
 import com.github.musicyou.ui.components.HomeScaffold
 import com.github.musicyou.ui.components.SortingHeader
 import com.github.musicyou.ui.components.TextFieldDialog
@@ -73,8 +72,8 @@ fun HomePlaylists(
                 isCreatingANewPlaylist = false
             },
             onDone = { text ->
-                query {
-                    Database.insert(Playlist(name = text))
+                database.query {
+                    database.insert(Playlist(name = text))
                 }
             }
         )

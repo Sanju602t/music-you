@@ -18,8 +18,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
 import coil3.compose.AsyncImage
 import com.github.innertube.Innertube
-import com.github.musicyou.Database
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.models.PlaylistPreview
 import com.github.musicyou.ui.styling.px
 import com.github.musicyou.utils.thumbnail
@@ -97,7 +97,7 @@ fun LocalPlaylistItem(
             val thumbnailWidthPx = maxWidth.px
 
             val thumbnails by remember {
-                Database.playlistThumbnailUrls(playlist.playlist.id).distinctUntilChanged().map {
+                database.playlistThumbnailUrls(playlist.playlist.id).distinctUntilChanged().map {
                     it.map { url ->
                         url.thumbnail(size = thumbnailWidthPx / 2)
                     }

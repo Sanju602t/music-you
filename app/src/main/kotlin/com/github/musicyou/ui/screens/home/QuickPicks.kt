@@ -49,16 +49,15 @@ import androidx.compose.ui.unit.times
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.innertube.Innertube
 import com.github.innertube.models.NavigationEndpoint
-import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.LocalPlayerServiceBinder
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.enums.QuickPicksSource
 import com.github.musicyou.models.LocalMenuState
-import com.github.musicyou.query
 import com.github.musicyou.ui.components.HomeScaffold
-import com.github.musicyou.ui.components.ShimmerHost
 import com.github.musicyou.ui.components.NonQueuedMediaItemMenu
+import com.github.musicyou.ui.components.ShimmerHost
 import com.github.musicyou.ui.components.TextPlaceholder
 import com.github.musicyou.ui.items.AlbumItem
 import com.github.musicyou.ui.items.ArtistItem
@@ -173,8 +172,8 @@ fun QuickPicks(
                                                 onDismiss = menuState::hide,
                                                 mediaItem = song.asMediaItem,
                                                 onRemoveFromQuickPicks = {
-                                                    query {
-                                                        Database.clearEventsFor(song.id)
+                                                    database.query {
+                                                        database.clearEventsFor(song.id)
                                                     }
                                                 },
                                                 onGoToAlbum = onAlbumClick,

@@ -30,15 +30,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.github.innertube.Innertube
 import com.github.innertube.requests.playlistPage
-import com.github.musicyou.Database
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.models.Playlist
 import com.github.musicyou.models.SongPlaylistMap
-import com.github.musicyou.query
-import com.github.musicyou.transaction
-import com.github.musicyou.ui.components.TooltipIconButton
 import com.github.musicyou.ui.components.ConfirmationDialog
 import com.github.musicyou.ui.components.TextFieldDialog
+import com.github.musicyou.ui.components.TooltipIconButton
 import com.github.musicyou.utils.asMediaItem
 import com.github.musicyou.utils.completed
 import kotlinx.coroutines.Dispatchers
@@ -63,7 +61,7 @@ fun LocalPlaylistScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     LaunchedEffect(Unit) {
-        Database.playlist(playlistId).filterNotNull().collect { playlist = it }
+        database.playlist(playlistId).filterNotNull().collect { playlist = it }
     }
 
     Scaffold(
@@ -91,26 +89,26 @@ fun LocalPlaylistScreen(
                             description = R.string.sync_playlist,
                             onClick = {
                                 playlist?.browseId?.let { browseId ->
-                                    transaction {
+                                    database.transaction {
                                         runBlocking(Dispatchers.IO) {
                                             withContext(Dispatchers.IO) {
                                                 Innertube.playlistPage(browseId = browseId)
                                                     ?.completed()
                                             }
                                         }?.getOrNull()?.let { remotePlaylist ->
-                                            Database.clearPlaylist(playlistId)
+                                            database.clearPlaylist(playlistId)
 
                                             remotePlaylist.songsPage
                                                 ?.items
                                                 ?.map(Innertube.SongItem::asMediaItem)
-                                                ?.onEach(Database::insert)
+                                                ?.onEach(database::insert)
                                                 ?.mapIndexed { position, mediaItem ->
                                                     SongPlaylistMap(
                                                         songId = mediaItem.mediaId,
                                                         playlistId = playlistId,
                                                         position = position
                                                     )
-                                                }?.let(Database::insertSongPlaylistMaps)
+                                                }?.let(database::insertSongPlaylistMaps)
                                         }
                                     }
                                 }
@@ -156,9 +154,9 @@ fun LocalPlaylistScreen(
                     initialTextInput = playlist?.name ?: "",
                     onDismiss = { isRenaming = false },
                     onDone = { text ->
-                        query {
+                        database.query {
                             playlist?.copy(name = text)
-                                ?.let(Database::update)
+                                ?.let(database::update)
                         }
                     }
                 )
@@ -169,8 +167,8 @@ fun LocalPlaylistScreen(
                     title = stringResource(id = R.string.delete_playlist_dialog),
                     onDismiss = { isDeleting = false },
                     onConfirm = {
-                        query {
-                            playlist?.let(Database::delete)
+                        database.query {
+                            playlist?.let(database::delete)
                         }
                         pop()
                     }

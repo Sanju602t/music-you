@@ -45,20 +45,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.util.UnstableApi
-import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.LocalPlayerServiceBinder
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.enums.SongSortBy
 import com.github.musicyou.enums.SortOrder
 import com.github.musicyou.models.ActionInfo
 import com.github.musicyou.models.LocalMenuState
 import com.github.musicyou.models.Song
-import com.github.musicyou.query
 import com.github.musicyou.ui.components.HomeScaffold
+import com.github.musicyou.ui.components.InHistoryMediaItemMenu
 import com.github.musicyou.ui.components.SortingHeader
 import com.github.musicyou.ui.components.SwipeToActionBox
-import com.github.musicyou.ui.components.InHistoryMediaItemMenu
 import com.github.musicyou.ui.items.LocalSongItem
 import com.github.musicyou.ui.styling.onOverlay
 import com.github.musicyou.ui.styling.overlay
@@ -165,9 +164,9 @@ fun HomeSongs(
                     ),
                     destructiveAction = ActionInfo(
                         onClick = {
-                            query {
+                            database.query {
                                 binder?.cache?.removeResource(song.id)
-                                Database.incrementTotalPlayTimeMs(
+                                database.incrementTotalPlayTimeMs(
                                     id = song.id,
                                     addition = -song.totalPlayTimeMs
                                 )
@@ -184,9 +183,9 @@ fun HomeSongs(
                                 )
 
                                 if (result == SnackbarResult.ActionPerformed) {
-                                    query {
-                                        Database.insert(song = song)
-                                        Database.incrementTotalPlayTimeMs(
+                                    database.query {
+                                        database.insert(song = song)
+                                        database.incrementTotalPlayTimeMs(
                                             id = song.id,
                                             addition = song.totalPlayTimeMs
                                         )

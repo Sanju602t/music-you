@@ -26,15 +26,14 @@ import com.github.innertube.Innertube
 import com.github.innertube.requests.itemsPage
 import com.github.innertube.requests.itemsPageContinuation
 import com.github.innertube.utils.from
-import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerServiceBinder
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.models.LocalMenuState
 import com.github.musicyou.models.Section
-import com.github.musicyou.query
+import com.github.musicyou.ui.components.NonQueuedMediaItemMenu
 import com.github.musicyou.ui.components.TabScaffold
 import com.github.musicyou.ui.components.TooltipIconButton
-import com.github.musicyou.ui.components.NonQueuedMediaItemMenu
 import com.github.musicyou.ui.components.adaptiveThumbnailContent
 import com.github.musicyou.ui.items.AlbumItem
 import com.github.musicyou.ui.items.ItemPlaceholder
@@ -106,10 +105,10 @@ fun ArtistScreen(
                     val bookmarkedAt =
                         if (viewModel.artist?.bookmarkedAt == null) System.currentTimeMillis() else null
 
-                    query {
+                    database.query {
                         viewModel.artist
                             ?.copy(bookmarkedAt = bookmarkedAt)
-                            ?.let(Database::update)
+                            ?.let(database::update)
                     }
                 },
                 icon = if (viewModel.artist?.bookmarkedAt == null) Icons.Outlined.BookmarkAdd else Icons.Filled.Bookmark,

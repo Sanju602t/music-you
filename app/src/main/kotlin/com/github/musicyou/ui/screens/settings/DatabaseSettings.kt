@@ -28,12 +28,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.R
-import com.github.musicyou.internal
-import com.github.musicyou.path
-import com.github.musicyou.query
+import com.github.musicyou.database
+import com.github.musicyou.database.DatabaseDao
 import com.github.musicyou.service.PlayerService
 import com.github.musicyou.ui.styling.Dimensions
 import com.github.musicyou.utils.intent
@@ -57,23 +55,23 @@ fun DatabaseSettings() {
     var pauseSearchHistory by rememberPreference(pauseSearchHistoryKey, false)
 
     val queriesCount by remember {
-        Database.queriesCount().distinctUntilChanged()
+        database.queriesCount().distinctUntilChanged()
     }.collectAsState(initial = 0)
 
     val eventsCount by remember {
-        Database.eventsCount().distinctUntilChanged()
+        database.eventsCount().distinctUntilChanged()
     }.collectAsState(initial = 0)
 
     val backupLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/vnd.sqlite3")) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
 
-            query {
-                Database.checkpoint()
+            database.query {
+                database.checkpoint()
 
                 context.applicationContext.contentResolver.openOutputStream(uri)
                     ?.use { outputStream ->
-                        FileInputStream(internal.path).use { inputStream ->
+                        FileInputStream(database.openHelper.writableDatabase.path).use { inputStream ->
                             inputStream.copyTo(outputStream)
                         }
                     }
@@ -84,13 +82,13 @@ fun DatabaseSettings() {
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri == null) return@rememberLauncherForActivityResult
 
-            query {
-                Database.checkpoint()
-                internal.close()
+            database.query {
+                database.checkpoint()
+                database.close()
 
                 context.applicationContext.contentResolver.openInputStream(uri)
                     ?.use { inputStream ->
-                        FileOutputStream(internal.path).use { outputStream ->
+                        FileOutputStream(database.openHelper.writableDatabase.path).use { outputStream ->
                             inputStream.copyTo(outputStream)
                         }
                     }
@@ -131,7 +129,7 @@ fun DatabaseSettings() {
                 stringResource(id = R.string.history_is_empty)
             },
             icon = Icons.Outlined.DeleteSweep,
-            onClick = { query(Database::clearQueries) },
+            onClick = { database.query(DatabaseDao::clearQueries) },
             isEnabled = queriesCount > 0
         )
 
@@ -143,7 +141,7 @@ fun DatabaseSettings() {
                 stringResource(id = R.string.quick_picks_cleared)
             },
             icon = Icons.Outlined.RestartAlt,
-            onClick = { query(Database::clearEvents) },
+            onClick = { database.query(DatabaseDao::clearEvents) },
             isEnabled = eventsCount > 0
         )
 

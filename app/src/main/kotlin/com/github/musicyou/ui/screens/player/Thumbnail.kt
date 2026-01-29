@@ -43,8 +43,8 @@ import androidx.media3.common.util.UnstableApi
 import coil3.compose.AsyncImage
 import com.github.innertube.Innertube
 import com.github.innertube.requests.visitorData
-import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerServiceBinder
+import com.github.musicyou.database
 import com.github.musicyou.service.UnplayableException
 import com.github.musicyou.service.VideoIdMismatchException
 import com.github.musicyou.ui.styling.Dimensions
@@ -190,7 +190,7 @@ fun Thumbnail(
                             onShowLyrics(false)
                             if (fullScreenLyrics) toggleFullScreenLyrics()
                         },
-                        ensureSongInserted = { Database.insert(currentWindow.mediaItem) },
+                        ensureSongInserted = { database.insert(currentWindow.mediaItem) },
                         size = thumbnailSizeDp,
                         mediaMetadataProvider = currentWindow.mediaItem::mediaMetadata,
                         durationProvider = player::getDuration,

@@ -47,9 +47,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import com.github.innertube.Innertube
 import com.github.innertube.requests.searchSuggestions
-import com.github.musicyou.Database
+import com.github.musicyou.database
 import com.github.musicyou.models.SearchQuery
-import com.github.musicyou.query
 import com.github.musicyou.ui.styling.Dimensions
 import com.github.musicyou.utils.pauseSearchHistoryKey
 import com.github.musicyou.utils.preferences
@@ -86,8 +85,8 @@ fun SearchScreen(
             }
 
             if (!context.preferences.getBoolean(pauseSearchHistoryKey, false)) {
-                query {
-                    Database.insert(SearchQuery(query = query))
+                database.query {
+                    database.insert(SearchQuery(query = query))
                 }
             }
         }
@@ -106,7 +105,7 @@ fun SearchScreen(
 
     LaunchedEffect(textFieldState.text) {
         if (!context.preferences.getBoolean(pauseSearchHistoryKey, false)) {
-            Database.queries("%${textFieldState.text}%")
+            database.queries("%${textFieldState.text}%")
                 .distinctUntilChanged { old, new -> old.size == new.size }
                 .collect { history = it }
         }
@@ -155,7 +154,7 @@ fun SearchScreen(
                                 Row {
                                     IconButton(
                                         onClick = {
-                                            query { Database.delete(query) }
+                                            database.query { database.delete(query) }
                                         }
                                     ) {
                                         Icon(

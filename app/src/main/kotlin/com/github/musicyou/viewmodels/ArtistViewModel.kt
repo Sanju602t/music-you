@@ -7,7 +7,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import com.github.innertube.Innertube
 import com.github.innertube.requests.artistPage
-import com.github.musicyou.Database
+import com.github.musicyou.database
 import com.github.musicyou.models.Artist
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
@@ -20,7 +20,7 @@ class ArtistViewModel : ViewModel() {
     var artistPage: Innertube.ArtistPage? by mutableStateOf(null)
 
     suspend fun loadArtist(browseId: String, tabIndex: Int) {
-        Database
+        database
             .artist(browseId)
             .combine(snapshotFlow { tabIndex }.map { it != 4 }) { artist, mustFetch -> artist to mustFetch }
             .distinctUntilChanged()
@@ -33,7 +33,7 @@ class ArtistViewModel : ViewModel() {
                             ?.onSuccess { currentArtistPage ->
                                 artistPage = currentArtistPage
 
-                                Database.Companion.upsert(
+                                database.upsert(
                                     Artist(
                                         id = browseId,
                                         name = currentArtistPage.name,

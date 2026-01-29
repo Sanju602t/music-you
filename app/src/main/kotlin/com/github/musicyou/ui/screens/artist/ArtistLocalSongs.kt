@@ -20,16 +20,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.LocalPlayerServiceBinder
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.models.ActionInfo
 import com.github.musicyou.models.LocalMenuState
 import com.github.musicyou.models.Song
 import com.github.musicyou.ui.components.CoverScaffold
-import com.github.musicyou.ui.components.ShimmerHost
 import com.github.musicyou.ui.components.NonQueuedMediaItemMenu
+import com.github.musicyou.ui.components.ShimmerHost
 import com.github.musicyou.ui.items.ListItemPlaceholder
 import com.github.musicyou.ui.items.LocalSongItem
 import com.github.musicyou.utils.asMediaItem
@@ -52,7 +52,7 @@ fun ArtistLocalSongs(
     var songs: List<Song>? by remember { mutableStateOf(null) }
 
     LaunchedEffect(Unit) {
-        Database.artistSongs(browseId).collect { songs = it }
+        database.artistSongs(browseId).collect { songs = it }
     }
 
     LazyColumn(

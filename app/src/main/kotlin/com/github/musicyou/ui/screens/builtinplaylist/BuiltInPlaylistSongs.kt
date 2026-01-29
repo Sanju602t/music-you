@@ -20,19 +20,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.github.musicyou.Database
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.LocalPlayerServiceBinder
 import com.github.musicyou.R
+import com.github.musicyou.database
 import com.github.musicyou.enums.BuiltInPlaylist
 import com.github.musicyou.models.ActionInfo
 import com.github.musicyou.models.LocalMenuState
 import com.github.musicyou.models.Song
 import com.github.musicyou.models.SongWithContentLength
 import com.github.musicyou.ui.components.CoverScaffold
-import com.github.musicyou.ui.components.SwipeToActionBox
 import com.github.musicyou.ui.components.InHistoryMediaItemMenu
 import com.github.musicyou.ui.components.NonQueuedMediaItemMenu
+import com.github.musicyou.ui.components.SwipeToActionBox
 import com.github.musicyou.ui.items.LocalSongItem
 import com.github.musicyou.utils.asMediaItem
 import com.github.musicyou.utils.enqueue
@@ -59,9 +59,9 @@ fun BuiltInPlaylistSongs(
 
     LaunchedEffect(Unit) {
         when (builtInPlaylist) {
-            BuiltInPlaylist.Favorites -> Database.favorites()
+            BuiltInPlaylist.Favorites -> database.favorites()
 
-            BuiltInPlaylist.Offline -> Database
+            BuiltInPlaylist.Offline -> database
                 .songsWithContentLength()
                 .flowOn(Dispatchers.IO)
                 .map { songs ->
