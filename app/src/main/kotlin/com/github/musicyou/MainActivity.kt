@@ -129,7 +129,8 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 Navigation(
                                     navController = navController,
-                                    sheetState = playerState
+                                    sheetState = playerState,
+                                    intentAction = intent?.action
                                 )
                             }
                         }

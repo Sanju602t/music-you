@@ -45,18 +45,23 @@ import kotlin.reflect.KClass
 @Composable
 fun Navigation(
     navController: NavHostController,
-    sheetState: SheetState
+    sheetState: SheetState,
+    intentAction: String?
 ) {
     val scope = rememberCoroutineScope()
     val slideDistance = rememberSlideDistance()
     val (screenIndex, _) = rememberPreference(homeScreenTabIndexKey, defaultValue = 0)
 
+    val homeRoute = TopDestinations.routes.getOrElse(
+        index = screenIndex,
+        defaultValue = { Routes.Home }
+    )
+
     NavHost(
         navController = navController,
-        startDestination = TopDestinations.routes.getOrElse(
-            index = screenIndex,
-            defaultValue = { Routes.Home }
-        )::class,
+        startDestination = if (intentAction == "com.github.musicyou.action.search") {
+            Routes.Search::class
+        } else homeRoute::class,
         enterTransition = {
             NavigationTransitions.enterTransition(
                 targetDestination = targetState.destination,
@@ -221,7 +226,15 @@ fun Navigation(
 
         playerComposable(route = Routes.Search::class) {
             SearchScreen(
-                pop = popDestination,
+                pop = {
+                    if (intentAction == "com.github.musicyou.action.search") {
+                        navController.navigate(route = homeRoute) {
+                            popUpTo(route = Routes.Search) {
+                                inclusive = true
+                            }
+                        }
+                    } else popDestination()
+                },
                 onAlbumClick = navigateToAlbum,
                 onArtistClick = navigateToArtist,
                 onPlaylistClick = { browseId ->
