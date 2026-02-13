@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DownloadForOffline
 import androidx.compose.material.icons.outlined.Refresh
@@ -82,50 +82,48 @@ fun QuickPicks(
         openSettings = openSettings
     ) {
         BoxWithConstraints {
-            // LazyColumn use kiya hai taaki upar se neeche full screen scroll ho
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp + playerPadding)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 4.dp, bottom = 16.dp + playerPadding)
             ) {
                 viewModel.relatedPageResult?.getOrNull()?.let { related ->
-                    // Trending Song Sabse upar
+                    // 1. Trending Song (Sabse upar)
                     viewModel.trending?.let { song ->
-                        item {
-                            LocalSongItem(
-                                song = song,
-                                onClick = {
-                                    val mediaItem = song.asMediaItem
-                                    binder?.stopRadio()
-                                    binder?.player?.forcePlay(mediaItem)
-                                    binder?.setupRadio(
-                                        NavigationEndpoint.Endpoint.Watch(videoId = mediaItem.mediaId)
+                        LocalSongItem(
+                            modifier = Modifier.fillMaxWidth(),
+                            song = song,
+                            onClick = {
+                                val mediaItem = song.asMediaItem
+                                binder?.stopRadio()
+                                binder?.player?.forcePlay(mediaItem)
+                                binder?.setupRadio(
+                                    NavigationEndpoint.Endpoint.Watch(videoId = mediaItem.mediaId)
+                                )
+                            },
+                            onLongClick = {
+                                menuState.display {
+                                    NonQueuedMediaItemMenu(
+                                        onDismiss = menuState::hide,
+                                        mediaItem = song.asMediaItem,
+                                        onRemoveFromQuickPicks = {
+                                            database.query {
+                                                database.clearEventsFor(song.id)
+                                            }
+                                        },
+                                        onGoToAlbum = onAlbumClick,
+                                        onGoToArtist = onArtistClick
                                     )
-                                },
-                                onLongClick = {
-                                    menuState.display {
-                                        NonQueuedMediaItemMenu(
-                                            onDismiss = menuState::hide,
-                                            mediaItem = song.asMediaItem,
-                                            onRemoveFromQuickPicks = {
-                                                database.query {
-                                                    database.clearEventsFor(song.id)
-                                                }
-                                            },
-                                            onGoToAlbum = onAlbumClick,
-                                            onGoToArtist = onArtistClick
-                                        )
-                                    }
                                 }
-                            )
-                        }
+                            }
+                        )
                     }
 
-                    // Baki saare songs ki vertical list
-                    items(
-                        items = related.songs?.dropLast(if (viewModel.trending == null) 0 else 1) ?: emptyList(),
-                        key = Innertube.SongItem::key
-                    ) { song ->
+                    // 2. Baki saare songs (Vertical list format mein)
+                    related.songs?.dropLast(if (viewModel.trending == null) 0 else 1)?.forEach { song ->
                         SongItem(
+                            modifier = Modifier.fillMaxWidth(),
                             song = song,
                             onClick = {
                                 val mediaItem = song.asMediaItem
@@ -147,25 +145,23 @@ fun QuickPicks(
                             }
                         )
                     }
-                } ?: item {
-                    // Error state handled inside item
-                    viewModel.relatedPageResult?.exceptionOrNull()?.let {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(text = stringResource(R.string.home_error), textAlign = TextAlign.Center)
-                            Spacer(Modifier.size(16.dp))
-                            Button(onClick = { scope.launch { viewModel.loadQuickPicks(quickPicksSource) } }) {
-                                Icon(Icons.Outlined.Refresh, null)
-                                Text(stringResource(R.string.retry))
-                            }
+                } ?: viewModel.relatedPageResult?.exceptionOrNull()?.let {
+                    // Error UI (Original logic)
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = stringResource(id = R.string.home_error), textAlign = TextAlign.Center)
+                        Spacer(Modifier.size(16.dp))
+                        Button(onClick = { scope.launch { viewModel.loadQuickPicks(quickPicksSource) } }) {
+                            Icon(Icons.Outlined.Refresh, null)
+                            Text(text = stringResource(id = R.string.retry))
                         }
-                    } ?: ShimmerHost {
-                        // Loading state: Full screen vertical placeholders
-                        repeat(10) {
-                            ListItemPlaceholder()
-                        }
+                    }
+                } ?: ShimmerHost {
+                    // Loading UI
+                    repeat(10) {
+                        ListItemPlaceholder()
                     }
                 }
             }
