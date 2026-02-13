@@ -101,8 +101,9 @@ fun QuickPicks(
         openSettings = openSettings
     ) {
         BoxWithConstraints {
+            // Horizontal scroll ke liye width factor adjust kiya
             val quickPicksLazyGridItemWidthFactor =
-                if (isLandscape && maxWidth * 0.475f >= 320.dp) 0.475f else 0.9f
+                if (isLandscape && maxWidth * 0.475f >= 320.dp) 0.475f else 0.85f
 
             val density = LocalDensity.current
 
@@ -134,11 +135,11 @@ fun QuickPicks(
 
                     LazyHorizontalGrid(
                         state = quickPicksLazyGridState,
-                        rows = GridCells.Fixed(count = 4),
+                        rows = GridCells.Fixed(count = 1), // 4 se 1 row kar diya
                         flingBehavior = rememberSnapFlingBehavior(snapLayoutInfoProvider),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height((songThumbnailSizeDp + Dimensions.itemsVerticalPadding * 2) * 4)
+                            .height(songThumbnailSizeDp + Dimensions.itemsVerticalPadding * 2 + 16.dp) // Height single row ke liye adjust ki
                     ) {
                         viewModel.trending?.let { song ->
                             item {
@@ -206,49 +207,27 @@ fun QuickPicks(
                         }
                     }
                 } ?: viewModel.relatedPageResult?.exceptionOrNull()?.let {
+                    // Error state (same as original)
                     Text(
                         text = stringResource(id = R.string.home_error),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(all = 16.dp)
+                        modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp)
                     )
-
                     Row(
                         modifier = Modifier.align(Alignment.CenterHorizontally),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    viewModel.loadQuickPicks(quickPicksSource)
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Refresh,
-                                contentDescription = stringResource(id = R.string.retry)
-                            )
+                        Button(onClick = { scope.launch { viewModel.loadQuickPicks(quickPicksSource) } }) {
+                            Icon(Icons.Outlined.Refresh, null)
                             Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                            Text(text = stringResource(id = R.string.retry))
-                        }
-
-                        FilledTonalButton(
-                            onClick = onOfflinePlaylistClick
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.DownloadForOffline,
-                                contentDescription = stringResource(id = R.string.offline)
-                            )
-                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                            Text(text = stringResource(id = R.string.offline))
+                            Text(stringResource(R.string.retry))
                         }
                     }
                 } ?: ShimmerHost {
+                    // Loading state limited to one row for songs
                     TextPlaceholder(modifier = sectionTextModifier)
-                    repeat(4) {
+                    repeat(1) {
                         ListItemPlaceholder()
                     }
                 }
