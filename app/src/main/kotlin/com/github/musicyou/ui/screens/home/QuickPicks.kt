@@ -66,13 +66,15 @@ import com.github.musicyou.utils.rememberPreference
 import com.github.musicyou.viewmodels.QuickPicksViewModel
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalAnimationApi::class)
+@ExperimentalFoundationApi
+@ExperimentalAnimationApi
 @Composable
 fun QuickPicks(
     openSearch: () -> Unit,
     openSettings: () -> Unit,
     onAlbumClick: (String) -> Unit,
     onArtistClick: (String) -> Unit,
+    onPlaylistClick: (String) -> Unit,
     onOfflinePlaylistClick: () -> Unit
 ) {
     val binder = LocalPlayerServiceBinder.current
@@ -204,7 +206,6 @@ fun QuickPicks(
                         }
                     }
                 } ?: viewModel.relatedPageResult?.exceptionOrNull()?.let {
-                    // Error UI remains same for UX
                     Text(
                         text = stringResource(id = R.string.home_error),
                         style = MaterialTheme.typography.titleMedium,
@@ -246,7 +247,6 @@ fun QuickPicks(
                         }
                     }
                 } ?: ShimmerHost {
-                    // Loading UI: Only song placeholders
                     TextPlaceholder(modifier = sectionTextModifier)
                     repeat(4) {
                         ListItemPlaceholder()
