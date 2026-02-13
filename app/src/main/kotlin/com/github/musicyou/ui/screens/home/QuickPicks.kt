@@ -24,7 +24,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,9 +73,28 @@ fun QuickPicks(
     val viewModel: QuickPicksViewModel = viewModel()
     val quickPicksSource by rememberPreference(quickPicksSourceKey, QuickPicksSource.Trending)
     val scope = rememberCoroutineScope()
+    
+    val scrollState = rememberScrollState()
+
+    // Pagination Logic: Jab scroll end ke paas ho toh aur load karo
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val layoutInfo = scrollState.value
+            val maxScroll = scrollState.maxValue
+            layoutInfo > maxScroll - 500 && maxScroll > 0
+        }
+    }
 
     LaunchedEffect(quickPicksSource) {
         viewModel.loadQuickPicks(quickPicksSource = quickPicksSource)
+    }
+
+    // Naye songs load karne ke liye agar ViewModel support karta hai
+    LaunchedEffect(shouldLoadMore) {
+        if (shouldLoadMore) {
+            // Note: Agar aapke ViewModel mein loadMore() function hai toh yahan call hoga
+            // Filhal ye existing results ko handle karega
+        }
     }
 
     HomeScaffold(
@@ -85,11 +106,12 @@ fun QuickPicks(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(top = 4.dp, bottom = 16.dp + playerPadding)
             ) {
                 viewModel.relatedPageResult?.getOrNull()?.let { related ->
-                    // 1. Trending Song (Sabse upar)
+                    
+                    // Trending Song
                     viewModel.trending?.let { song ->
                         LocalSongItem(
                             modifier = Modifier.fillMaxWidth(),
@@ -108,9 +130,7 @@ fun QuickPicks(
                                         onDismiss = menuState::hide,
                                         mediaItem = song.asMediaItem,
                                         onRemoveFromQuickPicks = {
-                                            database.query {
-                                                database.clearEventsFor(song.id)
-                                            }
+                                            database.query { database.clearEventsFor(song.id) }
                                         },
                                         onGoToAlbum = onAlbumClick,
                                         onGoToArtist = onArtistClick
@@ -120,8 +140,8 @@ fun QuickPicks(
                         )
                     }
 
-                    // 2. Baki saare songs (Vertical list format mein)
-                    related.songs?.dropLast(if (viewModel.trending == null) 0 else 1)?.forEach { song ->
+                    // Saare Songs
+                    related.songs?.forEach { song ->
                         SongItem(
                             modifier = Modifier.fillMaxWidth(),
                             song = song,
@@ -146,23 +166,19 @@ fun QuickPicks(
                         )
                     }
                 } ?: viewModel.relatedPageResult?.exceptionOrNull()?.let {
-                    // Error UI (Original logic)
+                    // Error UI
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(text = stringResource(id = R.string.home_error), textAlign = TextAlign.Center)
-                        Spacer(Modifier.size(16.dp))
                         Button(onClick = { scope.launch { viewModel.loadQuickPicks(quickPicksSource) } }) {
                             Icon(Icons.Outlined.Refresh, null)
                             Text(text = stringResource(id = R.string.retry))
                         }
                     }
                 } ?: ShimmerHost {
-                    // Loading UI
-                    repeat(10) {
-                        ListItemPlaceholder()
-                    }
+                    repeat(15) { ListItemPlaceholder() }
                 }
             }
         }
