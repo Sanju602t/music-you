@@ -3,30 +3,24 @@ package com.github.musicyou.ui.screens.home
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DownloadForOffline
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,28 +67,9 @@ fun QuickPicks(
     val viewModel: QuickPicksViewModel = viewModel()
     val quickPicksSource by rememberPreference(quickPicksSourceKey, QuickPicksSource.Trending)
     val scope = rememberCoroutineScope()
-    
-    val scrollState = rememberScrollState()
-
-    // Pagination Logic: Jab scroll end ke paas ho toh aur load karo
-    val shouldLoadMore by remember {
-        derivedStateOf {
-            val layoutInfo = scrollState.value
-            val maxScroll = scrollState.maxValue
-            layoutInfo > maxScroll - 500 && maxScroll > 0
-        }
-    }
 
     LaunchedEffect(quickPicksSource) {
         viewModel.loadQuickPicks(quickPicksSource = quickPicksSource)
-    }
-
-    // Naye songs load karne ke liye agar ViewModel support karta hai
-    LaunchedEffect(shouldLoadMore) {
-        if (shouldLoadMore) {
-            // Note: Agar aapke ViewModel mein loadMore() function hai toh yahan call hoga
-            // Filhal ye existing results ko handle karega
-        }
     }
 
     HomeScaffold(
@@ -102,17 +77,18 @@ fun QuickPicks(
         openSearch = openSearch,
         openSettings = openSettings
     ) {
-        BoxWithConstraints {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(top = 4.dp, bottom = 16.dp + playerPadding)
-            ) {
-                viewModel.relatedPageResult?.getOrNull()?.let { related ->
-                    
-                    // Trending Song
-                    viewModel.trending?.let { song ->
+        // BoxWithConstraints hata diya taaki LazyColumn ko height issue na ho
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                top = 4.dp, 
+                bottom = 16.dp + playerPadding
+            )
+        ) {
+            viewModel.relatedPageResult?.getOrNull()?.let { related ->
+                // 1. Trending Song
+                viewModel.trending?.let { song ->
+                    item(key = "trending_${song.id}") {
                         LocalSongItem(
                             modifier = Modifier.fillMaxWidth(),
                             song = song,
@@ -139,48 +115,63 @@ fun QuickPicks(
                             }
                         )
                     }
+                }
 
-                    // Saare Songs
-                    related.songs?.forEach { song ->
-                        SongItem(
-                            modifier = Modifier.fillMaxWidth(),
-                            song = song,
-                            onClick = {
-                                val mediaItem = song.asMediaItem
-                                binder?.stopRadio()
-                                binder?.player?.forcePlay(mediaItem)
-                                binder?.setupRadio(
-                                    NavigationEndpoint.Endpoint.Watch(videoId = mediaItem.mediaId)
+                // 2. All Songs (Isme koi dropLast nahi hai taaki maximum songs dikhein)
+                val songs = related.songs ?: emptyList()
+                items(
+                    items = songs,
+                    key = { it.key }
+                ) { song ->
+                    SongItem(
+                        modifier = Modifier.fillMaxWidth(),
+                        song = song,
+                        onClick = {
+                            val mediaItem = song.asMediaItem
+                            binder?.stopRadio()
+                            binder?.player?.forcePlay(mediaItem)
+                            binder?.setupRadio(
+                                NavigationEndpoint.Endpoint.Watch(videoId = mediaItem.mediaId)
+                            )
+                        },
+                        onLongClick = {
+                            menuState.display {
+                                NonQueuedMediaItemMenu(
+                                    onDismiss = menuState::hide,
+                                    mediaItem = song.asMediaItem,
+                                    onGoToAlbum = onAlbumClick,
+                                    onGoToArtist = onArtistClick
                                 )
-                            },
-                            onLongClick = {
-                                menuState.display {
-                                    NonQueuedMediaItemMenu(
-                                        onDismiss = menuState::hide,
-                                        mediaItem = song.asMediaItem,
-                                        onGoToAlbum = onAlbumClick,
-                                        onGoToArtist = onArtistClick
-                                    )
-                                }
                             }
-                        )
-                    }
-                } ?: viewModel.relatedPageResult?.exceptionOrNull()?.let {
-                    // Error UI
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(text = stringResource(id = R.string.home_error), textAlign = TextAlign.Center)
-                        Button(onClick = { scope.launch { viewModel.loadQuickPicks(quickPicksSource) } }) {
-                            Icon(Icons.Outlined.Refresh, null)
-                            Text(text = stringResource(id = R.string.retry))
                         }
+                    )
+                }
+            } ?: item {
+                // Error ya Shimmer state
+                if (viewModel.relatedPageResult?.exceptionOrNull() != null) {
+                    ErrorUI(onRetry = { scope.launch { viewModel.loadQuickPicks(quickPicksSource) } })
+                } else {
+                    ShimmerHost {
+                        repeat(20) { ListItemPlaceholder() }
                     }
-                } ?: ShimmerHost {
-                    repeat(15) { ListItemPlaceholder() }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun ErrorUI(onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(text = stringResource(id = R.string.home_error), textAlign = TextAlign.Center)
+        Spacer(Modifier.size(16.dp))
+        Button(onClick = onRetry) {
+            Icon(Icons.Outlined.Refresh, null)
+            Text(text = stringResource(id = R.string.retry))
         }
     }
 }
