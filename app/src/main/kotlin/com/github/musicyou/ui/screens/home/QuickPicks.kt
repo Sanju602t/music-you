@@ -6,7 +6,6 @@ import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,15 +14,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DownloadForOffline
@@ -45,7 +40,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.times
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.innertube.Innertube
 import com.github.innertube.models.NavigationEndpoint
@@ -59,12 +53,8 @@ import com.github.musicyou.ui.components.HomeScaffold
 import com.github.musicyou.ui.components.NonQueuedMediaItemMenu
 import com.github.musicyou.ui.components.ShimmerHost
 import com.github.musicyou.ui.components.TextPlaceholder
-import com.github.musicyou.ui.items.AlbumItem
-import com.github.musicyou.ui.items.ArtistItem
-import com.github.musicyou.ui.items.ItemPlaceholder
 import com.github.musicyou.ui.items.ListItemPlaceholder
 import com.github.musicyou.ui.items.LocalSongItem
-import com.github.musicyou.ui.items.PlaylistItem
 import com.github.musicyou.ui.items.SongItem
 import com.github.musicyou.ui.styling.Dimensions
 import com.github.musicyou.utils.SnapLayoutInfoProvider
@@ -76,15 +66,13 @@ import com.github.musicyou.utils.rememberPreference
 import com.github.musicyou.viewmodels.QuickPicksViewModel
 import kotlinx.coroutines.launch
 
-@ExperimentalFoundationApi
-@ExperimentalAnimationApi
+@OptIn(ExperimentalFoundationApi::class, ExperimentalAnimationApi::class)
 @Composable
 fun QuickPicks(
     openSearch: () -> Unit,
     openSettings: () -> Unit,
     onAlbumClick: (String) -> Unit,
     onArtistClick: (String) -> Unit,
-    onPlaylistClick: (String) -> Unit,
     onOfflinePlaylistClick: () -> Unit
 ) {
     val binder = LocalPlayerServiceBinder.current
@@ -96,7 +84,6 @@ fun QuickPicks(
     val scope = rememberCoroutineScope()
 
     val songThumbnailSizeDp = Dimensions.thumbnails.song
-    val itemSize = 108.dp + 2 * 8.dp
     val quickPicksLazyGridState = rememberLazyGridState()
     val sectionTextModifier = Modifier
         .padding(horizontal = 16.dp)
@@ -216,84 +203,8 @@ fun QuickPicks(
                             )
                         }
                     }
-
-                    related.albums?.let { albums ->
-                        Spacer(modifier = Modifier.height(Dimensions.spacer))
-
-                        Text(
-                            text = stringResource(id = R.string.related_albums),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = sectionTextModifier
-                        )
-
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 8.dp)
-                        ) {
-                            items(
-                                items = albums,
-                                key = Innertube.AlbumItem::key
-                            ) { album ->
-                                AlbumItem(
-                                    modifier = Modifier.widthIn(max = itemSize),
-                                    album = album,
-                                    onClick = { onAlbumClick(album.key) }
-                                )
-                            }
-                        }
-                    }
-
-                    related.artists?.let { artists ->
-                        Spacer(modifier = Modifier.height(Dimensions.spacer))
-
-                        Text(
-                            text = stringResource(id = R.string.similar_artists),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = sectionTextModifier
-                        )
-
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 8.dp)
-                        ) {
-                            items(
-                                items = artists,
-                                key = Innertube.ArtistItem::key,
-                            ) { artist ->
-                                ArtistItem(
-                                    modifier = Modifier.widthIn(max = itemSize),
-                                    artist = artist,
-                                    onClick = { onArtistClick(artist.key) }
-                                )
-                            }
-                        }
-                    }
-
-                    related.playlists?.let { playlists ->
-                        Spacer(modifier = Modifier.height(Dimensions.spacer))
-
-                        Text(
-                            text = stringResource(id = R.string.recommended_playlists),
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = sectionTextModifier
-                        )
-
-                        LazyRow(
-                            contentPadding = PaddingValues(horizontal = 8.dp)
-                        ) {
-                            items(
-                                items = playlists,
-                                key = Innertube.PlaylistItem::key,
-                            ) { playlist ->
-                                PlaylistItem(
-                                    modifier = Modifier.widthIn(max = itemSize),
-                                    playlist = playlist,
-                                    onClick = { onPlaylistClick(playlist.key) }
-                                )
-                            }
-                        }
-                    }
-
-                    Unit
                 } ?: viewModel.relatedPageResult?.exceptionOrNull()?.let {
+                    // Error UI remains same for UX
                     Text(
                         text = stringResource(id = R.string.home_error),
                         style = MaterialTheme.typography.titleMedium,
@@ -319,9 +230,7 @@ fun QuickPicks(
                                 imageVector = Icons.Outlined.Refresh,
                                 contentDescription = stringResource(id = R.string.retry)
                             )
-
                             Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-
                             Text(text = stringResource(id = R.string.retry))
                         }
 
@@ -332,56 +241,15 @@ fun QuickPicks(
                                 imageVector = Icons.Outlined.DownloadForOffline,
                                 contentDescription = stringResource(id = R.string.offline)
                             )
-
                             Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-
                             Text(text = stringResource(id = R.string.offline))
                         }
                     }
                 } ?: ShimmerHost {
+                    // Loading UI: Only song placeholders
                     TextPlaceholder(modifier = sectionTextModifier)
-
                     repeat(4) {
                         ListItemPlaceholder()
-                    }
-
-                    Spacer(modifier = Modifier.height(Dimensions.spacer))
-
-                    TextPlaceholder(modifier = sectionTextModifier)
-
-                    Row(
-                        modifier = Modifier.padding(start = 8.dp)
-                    ) {
-                        repeat(2) {
-                            ItemPlaceholder(modifier = Modifier.widthIn(max = itemSize))
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(Dimensions.spacer))
-
-                    TextPlaceholder(modifier = sectionTextModifier)
-
-                    Row(
-                        modifier = Modifier.padding(start = 8.dp)
-                    ) {
-                        repeat(2) {
-                            ItemPlaceholder(
-                                modifier = Modifier.widthIn(max = itemSize),
-                                shape = CircleShape
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(Dimensions.spacer))
-
-                    TextPlaceholder(modifier = sectionTextModifier)
-
-                    Row(
-                        modifier = Modifier.padding(start = 8.dp)
-                    ) {
-                        repeat(2) {
-                            ItemPlaceholder(modifier = Modifier.widthIn(max = itemSize))
-                        }
                     }
                 }
             }
