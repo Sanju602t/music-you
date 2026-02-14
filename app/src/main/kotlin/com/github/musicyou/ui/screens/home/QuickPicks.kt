@@ -11,31 +11,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.innertube.Innertube
 import com.github.innertube.models.NavigationEndpoint
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.LocalPlayerServiceBinder
@@ -56,8 +49,7 @@ import com.github.musicyou.utils.rememberPreference
 import com.github.musicyou.viewmodels.QuickPicksViewModel
 import kotlinx.coroutines.launch
 
-@ExperimentalFoundationApi
-@ExperimentalAnimationApi
+@OptIn(ExperimentalFoundationApi::class, ExperimentalAnimationApi::class)
 @Composable
 fun QuickPicks(
     openSearch: () -> Unit,
@@ -75,80 +67,8 @@ fun QuickPicks(
     val quickPicksSource by rememberPreference(quickPicksSourceKey, QuickPicksSource.Trending)
     val scope = rememberCoroutineScope()
 
-    // State for pagination
-    val allSongs: SnapshotStateList<Song> = remember { mutableStateListOf() }
-    var trendingSong by remember { mutableStateOf<Song?>(null) }
-    var continuationToken by remember { mutableStateOf<String?>(null) }
-    var isInitialLoading by remember { mutableStateOf(true) }
-    var isLoadingMore by remember { mutableStateOf(false) }
-    var loadMoreError by remember { mutableStateOf<Throwable?>(null) }
-
-    val listState = rememberLazyListState()
-
-    // Load first page when source changes
     LaunchedEffect(quickPicksSource) {
-        allSongs.clear()
-        trendingSong = null
-        continuationToken = null
-        isInitialLoading = true
-        loadMoreError = null
         viewModel.loadQuickPicks(quickPicksSource = quickPicksSource)
-    }
-
-    // Observe page result from ViewModel
-    LaunchedEffect(viewModel.relatedPageResult) {
-        val result = viewModel.relatedPageResult
-        if (result != null) {
-            val exception = result.exceptionOrNull()
-            if (exception != null) {
-                if (isInitialLoading) {
-                    isInitialLoading = false
-                } else {
-                    loadMoreError = exception
-                    isLoadingMore = false
-                }
-                return@LaunchedEffect
-            }
-
-            val related = result.getOrNull()
-            if (related != null) {
-                if (isInitialLoading) {
-                    trendingSong = viewModel.trending
-                }
-
-                val newSongs = related.songs ?: emptyList()
-                allSongs.addAll(newSongs)
-
-                // ✅ Continuation token lena – actual property name check karo
-                continuationToken = related.continuation
-
-                isInitialLoading = false
-                isLoadingMore = false
-                loadMoreError = null
-            }
-        }
-    }
-
-    // Detect end of list and load more
-    val shouldLoadMore = remember {
-        derivedStateOf {
-            if (isLoadingMore || loadMoreError != null || continuationToken == null) {
-                false
-            } else {
-                val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
-                val totalItemsCount = listState.layoutInfo.totalItemsCount
-                lastVisibleIndex != null && totalItemsCount > 0 &&
-                        lastVisibleIndex >= totalItemsCount - 3
-            }
-        }
-    }
-
-    LaunchedEffect(shouldLoadMore.value) {
-        if (shouldLoadMore.value) {
-            isLoadingMore = true
-            loadMoreError = null
-            viewModel.loadMoreQuickPicks(continuationToken) // ViewModel mein ye function add karna hoga
-        }
     }
 
     HomeScaffold(
@@ -156,22 +76,15 @@ fun QuickPicks(
         openSearch = openSearch,
         openSettings = openSettings
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            state = listState,
-            contentPadding = PaddingValues(
-                top = 4.dp,
-                bottom = 16.dp + playerPadding
-            )
-        ) {
-            if (isInitialLoading) {
-                item {
-                    ShimmerHost {
-                        repeat(20) { ListItemPlaceholder() }
-                    }
-                }
-            } else {
-                trendingSong?.let { song ->
+        val relatedPage = viewModel.relatedPageResult?.getOrNull()
+
+        if (relatedPage != null) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 16.dp + playerPadding)
+            ) {
+                // 1. Trending Song
+                viewModel.trending?.let { song ->
                     item(key = "trending_${song.id}") {
                         LocalSongItem(
                             modifier = Modifier.fillMaxWidth(),
@@ -201,9 +114,11 @@ fun QuickPicks(
                     }
                 }
 
+                // 2. All Songs List (Full results)
+                val songs = relatedPage.songs ?: emptyList()
                 items(
-                    items = allSongs,
-                    key = { it.key } // Song ki key property use ho rahi hai
+                    items = songs,
+                    key = { it.key }
                 ) { song ->
                     SongItem(
                         modifier = Modifier.fillMaxWidth(),
@@ -228,43 +143,28 @@ fun QuickPicks(
                         }
                     )
                 }
-
-                if (isLoadingMore) {
-                    item(key = "loading_more") {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                } else if (loadMoreError != null) {
-                    item(key = "load_more_error") {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = stringResource(id = R.string.home_error),
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(Modifier.size(16.dp))
-                            Button(
-                                onClick = {
-                                    loadMoreError = null
-                                    isLoadingMore = true
-                                    viewModel.loadMoreQuickPicks(continuationToken)
-                                }
-                            ) {
-                                Icon(Icons.Outlined.Refresh, null)
-                                Text(text = stringResource(id = R.string.retry))
-                            }
-                        }
+            }
+        } else if (viewModel.relatedPageResult?.exceptionOrNull() != null) {
+            // Error View
+            Column(
+                modifier = Modifier.fillMaxSize().padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = stringResource(R.string.home_error), textAlign = TextAlign.Center)
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = { scope.launch { viewModel.loadQuickPicks(quickPicksSource) } }) {
+                    Icon(Icons.Outlined.Refresh, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.retry))
+                }
+            }
+        } else {
+            // Loading View
+            ShimmerHost {
+                Column {
+                    repeat(15) {
+                        ListItemPlaceholder()
                     }
                 }
             }
