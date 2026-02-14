@@ -19,7 +19,6 @@ import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,7 +36,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.innertube.Innertube
 import com.github.innertube.models.NavigationEndpoint
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.LocalPlayerServiceBinder
@@ -77,9 +75,9 @@ fun QuickPicks(
     val quickPicksSource by rememberPreference(quickPicksSourceKey, QuickPicksSource.Trending)
     val scope = rememberCoroutineScope()
 
-    // State for accumulated songs (excluding trending)
-    val allSongs: SnapshotStateList<Innertube.SongItem> = remember { mutableStateListOf() }
-    var trendingSong by remember { mutableStateOf<Innertube.SongItem?>(null) }
+    // State for pagination
+    val allSongs: SnapshotStateList<Song> = remember { mutableStateListOf() }
+    var trendingSong by remember { mutableStateOf<Song?>(null) }
     var continuationToken by remember { mutableStateOf<String?>(null) }
     var isInitialLoading by remember { mutableStateOf(true) }
     var isLoadingMore by remember { mutableStateOf(false) }
@@ -97,7 +95,7 @@ fun QuickPicks(
         viewModel.loadQuickPicks(quickPicksSource = quickPicksSource)
     }
 
-    // Observe page result
+    // Observe page result from ViewModel
     LaunchedEffect(viewModel.relatedPageResult) {
         val result = viewModel.relatedPageResult
         if (result != null) {
@@ -121,7 +119,7 @@ fun QuickPicks(
                 val newSongs = related.songs ?: emptyList()
                 allSongs.addAll(newSongs)
 
-                // Extract continuation token – adjust field name if needed
+                // ✅ Continuation token lena – actual property name check karo
                 continuationToken = related.continuation
 
                 isInitialLoading = false
@@ -149,8 +147,7 @@ fun QuickPicks(
         if (shouldLoadMore.value) {
             isLoadingMore = true
             loadMoreError = null
-            // Assumes ViewModel has this method – add it if missing
-            viewModel.loadMoreQuickPicks(continuationToken)
+            viewModel.loadMoreQuickPicks(continuationToken) // ViewModel mein ye function add karna hoga
         }
     }
 
@@ -206,7 +203,7 @@ fun QuickPicks(
 
                 items(
                     items = allSongs,
-                    key = { it.key }
+                    key = { it.key } // Song ki key property use ho rahi hai
                 ) { song ->
                     SongItem(
                         modifier = Modifier.fillMaxWidth(),
@@ -271,24 +268,6 @@ fun QuickPicks(
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun ErrorUI(onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(text = stringResource(id = R.string.home_error), textAlign = TextAlign.Center)
-        Spacer(Modifier.size(16.dp))
-        Button(onClick = onRetry) {
-            Icon(Icons.Outlined.Refresh, null)
-            Text(text = stringResource(id = R.string.retry))
         }
     }
 }
