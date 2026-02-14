@@ -14,13 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.DownloadForOffline
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,7 +55,7 @@ fun QuickPicks(
     openSettings: () -> Unit,
     onAlbumClick: (String) -> Unit,
     onArtistClick: (String) -> Unit,
-    onPlaylistClick: (String) -> Unit, // Parameter kept for build safety
+    onPlaylistClick: (String) -> Unit,
     onOfflinePlaylistClick: () -> Unit
 ) {
     val binder = LocalPlayerServiceBinder.current
@@ -69,6 +65,13 @@ fun QuickPicks(
     val viewModel: QuickPicksViewModel = viewModel()
     val quickPicksSource by rememberPreference(quickPicksSourceKey, QuickPicksSource.Trending)
     val scope = rememberCoroutineScope()
+
+    // यह हिस्सा ऐप खुलते ही सर्च स्क्रीन पर ले जाएगा
+    LaunchedEffect(Unit) {
+        openSearch() // सर्च स्क्रीन खोलता है
+        // नोट: अगर आपके SearchViewModel में query सेट करने का फंक्शन है, 
+        // तो आप यहाँ "Hindi Songs" भी पास कर सकते हैं।
+    }
 
     LaunchedEffect(quickPicksSource) {
         viewModel.loadQuickPicks(quickPicksSource = quickPicksSource)
@@ -88,7 +91,7 @@ fun QuickPicks(
             val relatedPage = viewModel.relatedPageResult?.getOrNull()
 
             if (relatedPage != null) {
-                // 1. Trending Song (Sabse upar)
+                // Trending Song
                 viewModel.trending?.let { song ->
                     LocalSongItem(
                         modifier = Modifier.fillMaxWidth(),
@@ -117,7 +120,7 @@ fun QuickPicks(
                     )
                 }
 
-                // 2. All available songs in Vertical List
+                // Vertical List of Songs
                 relatedPage.songs?.forEach { song ->
                     SongItem(
                         modifier = Modifier.fillMaxWidth(),
@@ -143,24 +146,25 @@ fun QuickPicks(
                     )
                 }
             } else if (viewModel.relatedPageResult?.exceptionOrNull() != null) {
-                // Error handling to avoid crashes
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(text = stringResource(id = R.string.home_error), textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(16.dp))
-                    Button(onClick = { scope.launch { viewModel.loadQuickPicks(quickPicksSource) } }) {
-                        Icon(Icons.Outlined.Refresh, null)
-                        Text(text = stringResource(id = R.string.retry))
-                    }
-                }
+                ErrorView { scope.launch { viewModel.loadQuickPicks(quickPicksSource) } }
             } else {
-                // Initial Loading Shimmer
-                ShimmerHost {
-                    repeat(15) { ListItemPlaceholder() }
-                }
+                ShimmerHost { repeat(15) { ListItemPlaceholder() } }
             }
+        }
+    }
+}
+
+@Composable
+fun ErrorView(onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = "Error loading songs", textAlign = TextAlign.Center)
+        Spacer(Modifier.height(16.dp))
+        Button(onClick = onRetry) {
+            Icon(Icons.Outlined.Refresh, null)
+            Text(text = "Retry")
         }
     }
 }
