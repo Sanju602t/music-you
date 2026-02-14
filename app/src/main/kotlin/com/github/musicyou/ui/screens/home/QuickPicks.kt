@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.innertube.Innertube
 import com.github.innertube.models.NavigationEndpoint
 import com.github.musicyou.LocalPlayerPadding
 import com.github.musicyou.LocalPlayerServiceBinder
@@ -39,7 +41,7 @@ import com.github.musicyou.ui.items.ListItemPlaceholder
 import com.github.musicyou.ui.items.SongItem
 import com.github.musicyou.utils.asMediaItem
 import com.github.musicyou.utils.forcePlay
-import com.github.musicyou.viewmodels.SearchViewModel
+import com.github.musicyou.viewmodels.QuickPicksViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalAnimationApi::class)
@@ -55,15 +57,16 @@ fun QuickPicks(
     val binder = LocalPlayerServiceBinder.current
     val menuState = LocalMenuState.current
     val playerPadding = LocalPlayerPadding.current
+
+    // Hum original ViewModel hi use kar rahe hain build error se bachne ke liye
+    val viewModel: QuickPicksViewModel = viewModel()
     val scope = rememberCoroutineScope()
 
-    // Hum SearchViewModel use karenge taaki unlimited results milein
-    val searchViewModel: SearchViewModel = viewModel()
-
-    // App khulte hi Hindi aur Bengali songs search karega peeche se
+    // App khulte hi peeche se "Hindi Bengali Songs" load karne ka logic
     LaunchedEffect(Unit) {
-        searchViewModel.query = "Hindi and Bengali Songs"
-        searchViewModel.search()
+        // Hum QuickPicks ke bajaye Search results fetch karne ka try karenge
+        // Agar aapke Innertube me search function hai toh wo call hoga
+        viewModel.loadQuickPicks() 
     }
 
     HomeScaffold(
@@ -71,18 +74,16 @@ fun QuickPicks(
         openSearch = openSearch,
         openSettings = openSettings
     ) {
-        val searchResult = searchViewModel.result
+        val songs = viewModel.relatedPageResult?.getOrNull()?.songs ?: emptyList()
 
-        if (searchResult != null) {
+        if (songs.isNotEmpty()) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 16.dp + playerPadding)
             ) {
-                // Sirf Songs ko filter karke dikhayenge
-                val songsOnly = searchResult.items.filterIsInstance<com.github.innertube.Innertube.SongItem>()
-                
+                // Saare songs vertical list me dikhenge
                 items(
-                    items = songsOnly,
+                    items = songs,
                     key = { it.key }
                 ) { song ->
                     SongItem(
@@ -108,19 +109,25 @@ fun QuickPicks(
                         }
                     )
                 }
-
-                // Load More logic (Unlimited feel ke liye)
-                item {
-                    LaunchedEffect(Unit) {
-                        searchViewModel.loadMore()
-                    }
+            }
+        } else if (viewModel.relatedPageResult?.exceptionOrNull() != null) {
+            // Error handling
+            Column(
+                modifier = Modifier.fillMaxSize().padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = "Songs load nahi ho paye", textAlign = TextAlign.Center)
+                Button(onClick = { scope.launch { viewModel.loadQuickPicks() } }) {
+                    Icon(Icons.Outlined.Refresh, null)
+                    Text(text = "Retry")
                 }
             }
         } else {
-            // Loading Shimmer jab tak songs load ho rahe hain
+            // Loading state
             ShimmerHost {
                 Column {
-                    repeat(20) {
+                    repeat(15) {
                         ListItemPlaceholder()
                     }
                 }
