@@ -77,72 +77,53 @@ fun QuickPicks(
     val quickPicksSource by rememberPreference(quickPicksSourceKey, QuickPicksSource.Trending)
     val scope = rememberCoroutineScope()
 
-    // State for the list of songs (excluding trending) – will grow as we load pages
+    // State for accumulated songs (excluding trending)
     val allSongs: SnapshotStateList<Innertube.SongItem> = remember { mutableStateListOf() }
-    // Trending song (if any) is displayed separately and stays at the top
     var trendingSong by remember { mutableStateOf<Innertube.SongItem?>(null) }
-    // Continuation token for loading the next page – null means no more pages
     var continuationToken by remember { mutableStateOf<String?>(null) }
-    // Loading states
     var isInitialLoading by remember { mutableStateOf(true) }
     var isLoadingMore by remember { mutableStateOf(false) }
-    // Error state for pagination
     var loadMoreError by remember { mutableStateOf<Throwable?>(null) }
 
     val listState = rememberLazyListState()
 
-    // Load the first page when the source changes
+    // Load first page when source changes
     LaunchedEffect(quickPicksSource) {
-        // Reset everything
         allSongs.clear()
         trendingSong = null
         continuationToken = null
         isInitialLoading = true
         loadMoreError = null
-
-        // Call the initial load – assumes viewModel.loadQuickPicks() populates
-        // viewModel.relatedPageResult and viewModel.trending, and also provides continuation.
         viewModel.loadQuickPicks(quickPicksSource = quickPicksSource)
     }
 
-    // Observe the result of the current page load
+    // Observe page result
     LaunchedEffect(viewModel.relatedPageResult) {
         val result = viewModel.relatedPageResult
         if (result != null) {
-            // If it's an error, handle it
             val exception = result.exceptionOrNull()
             if (exception != null) {
                 if (isInitialLoading) {
-                    // Initial load error – we'll show the ErrorUI in the LazyColumn
                     isInitialLoading = false
                 } else {
-                    // Error during loading more
                     loadMoreError = exception
                     isLoadingMore = false
                 }
                 return@LaunchedEffect
             }
 
-            // Success: extract data
             val related = result.getOrNull()
             if (related != null) {
-                // Update trending song (only from the first page; subsequent pages may not have it)
                 if (isInitialLoading) {
                     trendingSong = viewModel.trending
                 }
 
-                // Get the new songs from this page
                 val newSongs = related.songs ?: emptyList()
-
-                // Append to the full list (avoid duplicates if any)
                 allSongs.addAll(newSongs)
 
-                // Get continuation token for next page – assume related has a 'continuation' field
-                // If not, we'll need to adjust based on actual innertube model.
-                continuationToken = (related as? Innertube.HasContinuation)?.continuation
-                    ?: related.continuation // Adjust to actual property name
+                // Extract continuation token – adjust field name if needed
+                continuationToken = related.continuation
 
-                // Clear loading states
                 isInitialLoading = false
                 isLoadingMore = false
                 loadMoreError = null
@@ -150,7 +131,7 @@ fun QuickPicks(
         }
     }
 
-    // Detect when we need to load more (user near end of list)
+    // Detect end of list and load more
     val shouldLoadMore = remember {
         derivedStateOf {
             if (isLoadingMore || loadMoreError != null || continuationToken == null) {
@@ -158,7 +139,6 @@ fun QuickPicks(
             } else {
                 val lastVisibleIndex = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
                 val totalItemsCount = listState.layoutInfo.totalItemsCount
-                // Trigger when the last visible item is within 3 items of the end
                 lastVisibleIndex != null && totalItemsCount > 0 &&
                         lastVisibleIndex >= totalItemsCount - 3
             }
@@ -169,11 +149,8 @@ fun QuickPicks(
         if (shouldLoadMore.value) {
             isLoadingMore = true
             loadMoreError = null
-            // Call load more with continuation token
-            // This assumes viewModel has a function to load the next page using the token.
-            // If not, we need to adapt. We'll use a safe call.
-            viewModel.loadMoreQuickPicks(continuationToken) // you may need to implement this
-            // Alternative: viewModel.loadQuickPicks(quickPicksSource, continuationToken)
+            // Assumes ViewModel has this method – add it if missing
+            viewModel.loadMoreQuickPicks(continuationToken)
         }
     }
 
@@ -191,14 +168,12 @@ fun QuickPicks(
             )
         ) {
             if (isInitialLoading) {
-                // Show shimmer while loading first page
                 item {
                     ShimmerHost {
                         repeat(20) { ListItemPlaceholder() }
                     }
                 }
             } else {
-                // Show trending song if present (only on first page, but keep it)
                 trendingSong?.let { song ->
                     item(key = "trending_${song.id}") {
                         LocalSongItem(
@@ -229,7 +204,6 @@ fun QuickPicks(
                     }
                 }
 
-                // Display all loaded songs
                 items(
                     items = allSongs,
                     key = { it.key }
@@ -258,7 +232,6 @@ fun QuickPicks(
                     )
                 }
 
-                // Loading more indicator or error at the bottom
                 if (isLoadingMore) {
                     item(key = "loading_more") {
                         Column(
@@ -298,16 +271,6 @@ fun QuickPicks(
                     }
                 }
             }
-        }
-
-        // If there's an error on initial load, show the full-screen error UI
-        if (!isInitialLoading && viewModel.relatedPageResult?.exceptionOrNull() != null && allSongs.isEmpty()) {
-            // Use Box to overlay error? But LazyColumn already handles it via empty list.
-            // The LazyColumn above will show nothing because allSongs is empty and no trending.
-            // So we need to show an error item. We'll move error handling into LazyColumn.
-            // Actually, we already show an error item only when loading more fails.
-            // For initial load error, we need to show the error UI inside LazyColumn as well.
-            // We can add a condition in the LazyColumn to show error if initial load failed and no items.
         }
     }
 }
